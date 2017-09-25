@@ -13,8 +13,8 @@ DATA_DIR = config["data_dir"]
 
 SAMPLES = []
 for file in os.listdir(DATA_DIR):
-    if file.endswith(".freebayes.norm.targets.only.vcf.gz"):
-        SAMPLES.append(str(file).split('.freebayes.norm.targets.only.vcf.gz')[0])
+    if file.endswith(".freebayes.norm.vcf.gz"):
+        SAMPLES.append(str(file).split('.freebayes.norm.vcf.gz')[0])
 
 SAMPLES2 = list(set(SAMPLES))
 SAMPLES = SAMPLES2
@@ -22,11 +22,11 @@ SAMPLES = SAMPLES2
 print(SAMPLES)
 
 rule all:
-        input: expand("%s/{sample}.freebayes.norm.targets.only.vcf.gz" % DATA_DIR, sample = SAMPLES), expand("{sample}.ibs0", sample = SAMPLES)
+        input: expand("%s/{sample}.freebayes.norm.vcf.gz" % DATA_DIR, sample = SAMPLES), expand("{sample}.ibs0", sample = SAMPLES)
 		params: sge_opts="-l mfree=20G -N run_all" 
 
 rule king:
-    input: "%s/{sample}.freebayes.norm.targets.only.vcf.gz"%DATA_DIR
+    input: "%s/{sample}.freebayes.norm.vcf.gz"%DATA_DIR
     output: "{sample}.ibs0"
     log: "{sample}.king.log"
     params: prefix="{sample}", sge_opts="-l h_vmem=10G,disk_free=20G,h_rt=48:00:00 -N king -cwd "
