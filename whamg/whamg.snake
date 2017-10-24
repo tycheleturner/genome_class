@@ -1,0 +1,67 @@
+#Tychele Turner
+#WHAM pipeline
+#06222017
+
+import os
+
+if config == {}:
+    configfile: "whamg.json"
+
+FAMILY_FILE = config["family_file"]
+REFERENCE = config["reference"]
+DATA_DIR = config["data_dir"]
+WHAMG = config["whamg"]
+EXCLUDE = config["exclude"]
+
+#show samples to run
+FAMILIES = []
+with open(FAMILY_FILE) as f:
+    FAMILIES = f.read().splitlines()
+    print(FAMILIES)
+ 
+rule all:
+    input: expand("%s/{family}.fa.final.cram" % DATA_DIR, family = FAMILIES), expand("{family}.whamg.vcf", family = FAMILIES)
+    params: sge_opts="-l mfree=20G -N run_all" 
+
+rule wham_family:
+    input: "%s/{family}.fa.final.cram"%DATA_DIR
+    output: "{family}.whamg.vcf"
+    log: "{family}.whamg.family.log"
+    params: prefix="{family}", sge_opts="-l h_vmem=6G,disk_free=10G,h_rt=48:00:00,ssd=true -N set -pe serial 4 -cwd "
+    shell: """
+    START=$(date +%s)
+
+    module load samtools/1.4
+    samtools view -T {REFERENCE} -b -o {params.prefix}.fa.final.bam {input}
+    samtools index {params.prefix}.fa.final.bam
+
+    samtools view -T {REFERENCE} -b -o {params.prefix}.mo.final.bam {DATA_DIR}{params.prefix}.mo.final.cram
+    samtools index {params.prefix}.mo.final.bam
+
+    samtools view -T {REFERENCE} -b -o {params.prefix}.p1.final.bam {DATA_DIR}{params.prefix}.p1.final.cram
+    samtools index {params.prefix}.p1.final.bam
+
+    samtools view -T {REFERENCE} -b -o {params.prefix}.s1.final.bam {DATA_DIR}{params.prefix}.s1.final.cram
+    samtools index {params.prefix}.s1.final.bam
+
+    {WHAMG} -f {params.prefix}.fa.final.bam,{params.prefix}.mo.final.bam,{params.prefix}.p1.final.bam,{params.prefix}.s1.final.bam -a {REFERENCE} -e {EXCLUDE} -u 20 -m 15 -x 4 > {output} 2> {params.prefix}.whamg.err
+
+    rm {params.prefix}.fa.final.bam
+    rm {params.prefix}.mo.final.bam
+    rm {params.prefix}.p1.final.bam
+    rm {params.prefix}.s1.final.bam
+
+    rm {params.prefix}.fa.final.bam.bai
+    rm {params.prefix}.mo.final.bam.bai
+    rm {params.prefix}.p1.final.bam.bai
+    rm {params.prefix}.s1.final.bam.bai
+
+    END=$(date +%s)
+    DIFF=$(( $END - $START ))
+    echo "$DIFF" &> {log}
+
+    """
+rule clean:
+    """clean up temporary files"""
+    shell: """
+    """

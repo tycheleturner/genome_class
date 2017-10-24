@@ -1,0 +1,7 @@
+{
+  "reference":"/path/to/GRCh38_full_analysis_set_plus_decoy_hla.fa",
+  "data_dir": "/path/to/exome_genome_class/nobackups/data/genomes/",
+  "exclude": "chrM",
+  "whamg": "/path/to/wham/bin/whamg/",
+  "family_file": "/path/to/family_file.txt"
+}
