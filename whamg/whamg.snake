@@ -41,20 +41,15 @@ rule wham_family:
     samtools view -T {REFERENCE} -b -o {params.prefix}.p1.final.bam {DATA_DIR}{params.prefix}.p1.final.cram
     samtools index {params.prefix}.p1.final.bam
 
-    samtools view -T {REFERENCE} -b -o {params.prefix}.s1.final.bam {DATA_DIR}{params.prefix}.s1.final.cram
-    samtools index {params.prefix}.s1.final.bam
-
-    {WHAMG} -f {params.prefix}.fa.final.bam,{params.prefix}.mo.final.bam,{params.prefix}.p1.final.bam,{params.prefix}.s1.final.bam -a {REFERENCE} -e {EXCLUDE} -u 20 -m 15 -x 4 > {output} 2> {params.prefix}.whamg.err
+    {WHAMG} -f {params.prefix}.fa.final.bam,{params.prefix}.mo.final.bam,{params.prefix}.p1.final.bam -a {REFERENCE} -e {EXCLUDE} -u 20 -m 15 -x 4 > {output} 2> {params.prefix}.whamg.err
 
     rm {params.prefix}.fa.final.bam
     rm {params.prefix}.mo.final.bam
     rm {params.prefix}.p1.final.bam
-    rm {params.prefix}.s1.final.bam
 
     rm {params.prefix}.fa.final.bam.bai
     rm {params.prefix}.mo.final.bam.bai
     rm {params.prefix}.p1.final.bam.bai
-    rm {params.prefix}.s1.final.bam.bai
 
     END=$(date +%s)
     DIFF=$(( $END - $START ))
