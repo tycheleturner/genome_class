@@ -1,0 +1,6 @@
+{
+  "DATA_DIR":"/path/to/exome_genome_class/nobackups/data/genomes/",
+  "EXCLUDE": "/path/to/lumpy/exclude_b38.bed",
+  "LUMPY": "/path/to/lumpy-sv/bin/lumpyexpress",
+  "FAMILY_FILE": "/path/to/family_file.txt"
+}

@@ -1,0 +1,41 @@
+#Tychele Turner
+#Lumpy pipeline
+#07192017
+
+import os
+
+if config == {}:
+    configfile: "lumpy.json"
+
+EXCLUDE=config["EXCLUDE"]
+LUMPY=config["LUMPY"]
+FAMILY_FILE = config["FAMILY_FILE"]
+DATA_DIR = config["DATA_DIR"]
+
+#show samples to run
+FAMILIES = []
+with open(FAMILY_FILE) as f:
+    FAMILIES = f.read().splitlines()
+    print(FAMILIES)
+ 
+rule all:
+    input: expand("%s/{family}.fa.final.cram" % DATA_DIR, family = FAMILIES), expand("{family}.lumpy.vcf", family = FAMILIES)
+    params: sge_opts="-l mfree=20G -N run_all" 
+
+rule lumpy_family:
+    input: "%s/{family}.fa.final.cram"%DATA_DIR
+    output: "{family}.lumpy.vcf"
+    log: "{family}.lumpy.family.log"
+    params: prefix="{family}", sge_opts="-l h_vmem=40G,disk_free=10G,h_rt=48:00:00,ssd=true -N set -cwd "
+    shell: """
+    module load modules modules-init modules-gs
+    module load samtools/1.4 samblaster/0.1.24 python/2.7.3 pysam/0.8.4 numpy/1.11.0
+    {LUMPY} -B {input},{DATA_DIR}/{params.prefix}.mo.final.cram,{DATA_DIR}/{params.prefix}.p1.final.cram -o {output} -x {EXCLUDE}
+
+    ls {output}
+
+    """
+rule clean:
+    """clean up temporary files"""
+    shell: """
+    """
