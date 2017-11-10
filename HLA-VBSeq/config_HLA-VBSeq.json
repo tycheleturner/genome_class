@@ -1,0 +1,9 @@
+{
+  "data_dir":"/path/to/exome_genome_class/nobackups/data/genomes/bams/",
+  "reference": "/path/to/human_g1k_v37.fasta",
+  "bwa": "/path/to/software/bwa/bwa",
+  "hla_all_fasta": "/path/to/hla_all.fasta",
+  "hlavbseq": "/path/to/HLAVBSeq.jar",
+  "parse_result": "/path/to/parse_result.pl",
+  "allele_list": "/path/to/Allelelist.txt"
+}

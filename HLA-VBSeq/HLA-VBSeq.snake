@@ -1,0 +1,92 @@
+#HLA-VBSeq pipeline
+#Tychele N. Turner, Ph.D.
+
+import os
+
+if config == {}:
+    configfile: "config_HLA-VBSeq.json"
+
+REFERENCE = config["reference"]
+DATA_DIR = config["data_dir"]
+BWA = config["bwa"]
+HLA_ALL_FASTA = config["hla_all_fasta"]
+HLAVBSEQ = config["hlavbseq"]
+PARSE_RESULT = config["parse_result"]
+ALLELE_LIST = config["allele_list"]
+
+SAMPLES = []
+for file in os.listdir(DATA_DIR):
+    if file.endswith(".bam"):
+        SAMPLES.append(str(file).split('.bam')[0])
+
+SAMPLES2 = list(set(SAMPLES))
+SAMPLES = SAMPLES2
+
+print(SAMPLES)
+
+rule all:
+       input: expand("%s/{sample}.bam" % DATA_DIR, sample = SAMPLES), expand("{sample}.final.R1.fq", sample = SAMPLES), expand("{sample}.final.R2.fq", sample = SAMPLES), expand("{sample}.hla.mapped.sam", sample = SAMPLES), expand("{sample}_result.txt", sample = SAMPLES), expand("{sample}_HLA_final.txt", sample = SAMPLES)
+       params: sge_opts="-l mfree=20G -N run_all"
+
+rule parse_hla:
+    input: "{sample}_result.txt"
+    output: "{sample}_HLA_final.txt"
+    params: prefix="{sample}", sge_opts="-l mfree=6G,h_rt=48:00:00 -N parse -cwd"
+    shell: """
+
+        {PARSE_RESULT} {ALLELE_LIST} {input}| sort -k2 -n -r  | grep -w -v '0' > {output}
+
+        """
+
+rule get_hla:
+    input: "{sample}.hla.mapped.sam"
+    output: "{sample}_result.txt"
+    params: prefix="{sample}", sge_opts="-l mfree=6G,h_rt=48:00:00 -N get -cwd"
+    shell: """
+
+        module load modules modules-init modules-gs
+        module load java/7u17
+
+        java -Xmx1g -jar {HLAVBSEQ} {HLA_ALL_FASTA} {input} {output} --alpha_zero 0.01 --is_paired
+        """
+
+rule map_reads:
+    input: "{sample}.final.R1.fq", "{sample}.final.R2.fq"
+    output: "{sample}.hla.mapped.sam"
+    params: prefix="{sample}", sge_opts="-l mfree=6G,h_rt=48:00:00 -pe serial 6 -N map -cwd"
+    shell: """
+        {BWA} mem -t 6 -P -L 10000 -a {HLA_ALL_FASTA} {input[0]} {input[1]} > {output}
+        """
+
+rule get_reads:
+    input: "%s/{sample}.bam"%DATA_DIR
+    output: "{sample}.final.R1.fq", "{sample}.final.R2.fq"
+    params: prefix="{sample}", sge_opts="-l mfree=6G,h_rt=48:00:00 -pe serial 6 -N partials -cwd"
+    shell: """
+	module load modules modules-init modules-gs
+        module load samtools/1.3
+        module load bedtools/2.24.0
+        samtools view -Shb {input} 6:29907037-29915661 6:31319649-31326989 6:31234526-31241863 6:32914391-32922899 6:32900406-32910847 6:32969960-32979389 6:32778540-32786825 6:33030346-33050555 6:33041703-33059473 6:32603183-32613429 6:32707163-32716664 6:32625241-32636466 6:32721875-32733330 6:32405619-32414826 6:32544547-32559613 6:32518778-32554154 6:32483154-32559613 6:30455183-30463982 6:29689117-29699106 6:29792756-29800899 6:29793613-29978954 6:29855105-29979733 6:29892236-29899009 6:30225339-30236728 6:31369356-31385092 6:31460658-31480901 6:29766192-29772202 6:32810986-32823755 6:32779544-32808599 6:29756731-29767588 > {params.prefix}.hla.bam
+
+        samtools sort -@ 6 -n {params.prefix}.hla.bam -o {params.prefix}.hla.bam.qsort.bam
+        bedtools bamtofastq -i {params.prefix}.hla.bam.qsort.bam -fq {params.prefix}.hla.R1.fq -fq2 {params.prefix}.hla.R2.fq
+
+        samtools view -bh -f 12 {input} > {params.prefix}.unmapped.bam
+        samtools sort -@ 6 -n {params.prefix}.unmapped.bam -o {params.prefix}.unmapped.bam.qsort.bam
+        bedtools bamtofastq -i {params.prefix}.unmapped.bam.qsort.bam -fq {params.prefix}.unmapped.R1.fq -fq2 {params.prefix}.unmapped.R2.fq
+
+        cat {params.prefix}.hla.R1.fq {params.prefix}.unmapped.R1.fq > {params.prefix}.final.R1.fq
+        cat {params.prefix}.hla.R2.fq {params.prefix}.unmapped.R2.fq > {params.prefix}.final.R2.fq
+
+	"""
+
+rule clean:
+	"""clean up temporary files"""
+	shell: """
+        rm *fq
+        rm *unmapped*bam
+	rm *sam
+	rm *bam
+
+	"""
+
