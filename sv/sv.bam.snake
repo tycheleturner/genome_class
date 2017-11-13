@@ -1,0 +1,48 @@
+#SV pipeline with bams
+#Tychele N. Turner, Ph.D.
+
+import os
+
+if config == {}:
+    configfile: "sv.bam.json"
+
+FAMILY_FILE = config["family_file"]
+REFERENCE = config["reference"]
+DATA_DIR = config["data_dir"]
+WHAMG = config["whamg"]
+LUMPY = config["lumpy"]
+EXCLUDE_WHAMG = config["exclude_whamg"]
+EXCLUDE_LUMPY = config["exclude_lumpy"]
+SVTYPER = config["svtyper"]
+
+#show samples to run
+FAMILIES = []
+with open(FAMILY_FILE) as f:
+    FAMILIES = f.read().splitlines()
+    print(FAMILIES)
+ 
+rule all:
+    input: expand("%s/{family}.fa.final.bam" % DATA_DIR, family = FAMILIES), expand("{family}.whamg.vcf", family = FAMILIES), expand("{family}.lumpy.vcf", family=FAMILIES), expand("{family}.whamg.svtyper.vcf", family = FAMILIES), expand("{family}.lumpy.svtyper.vcf", family=FAMILIES)
+    params: sge_opts="-l mfree=20G -N run_all" 
+
+rule sv_family:
+    input: "%s/{family}.fa.final.bam"%DATA_DIR
+    output: "{family}.whamg.vcf", "{family}.lumpy.vcf", "{family}.whamg.svtyper.vcf", "{family}.lumpy.svtyper.vcf"
+    benchmark: "{family}.sv.family.log"
+    params: prefix="{family}", sge_opts="-l h_vmem=6G,disk_free=10G,h_rt=96:00:00 -N sv -pe serial 4 -cwd "
+    shell: """
+
+    {WHAMG} -f {input},{DATA_DIR}{params.prefix}.mo.final.bam,{DATA_DIR}{params.prefix}.p1.final.bam -a {REFERENCE} -e {EXCLUDE_WHAMG} -u 20 -m 15 -x 4 > {output[0]} 2> {params.prefix}.whamg.err
+
+    module load samtools/1.4 samblaster/0.1.24 python/2.7.3 pysam/0.8.4 numpy/1.11.0
+    {LUMPY} -B {input},{DATA_DIR}{params.prefix}.mo.final.bam,{DATA_DIR}{params.prefix}.p1.final.bam -o {output[1]} -x {EXCLUDE_LUMPY} 
+
+    {SVTYPER} -B {params.prefix}.fa.final.bam,{params.prefix}.mo.final.bam,{params.prefix}.p1.final.bam -i {params.prefix}.whamg.vcf -o {output[2]}
+    {SVTYPER} -B {params.prefix}.fa.final.bam,{params.prefix}.mo.final.bam,{params.prefix}.p1.final.bam -i {params.prefix}.lumpy.vcf -o {output[3]}
+
+    """
+
+rule clean:
+    """clean up temporary files"""
+    shell: """
+    """

@@ -1,0 +1,10 @@
+{
+  "reference":"/path/to/reference.fa",
+  "data_dir": "/path/to/input/data/",
+  "lumpy": "/path/to/lumpy-sv/bin/lumpyexpress",
+  "exclude_whamg": "chrM",
+  "exclude_lumpy": "/path/to/exclude.bed",
+  "whamg": "/path/to/wham/bin/whamg",
+  "family_file": "/path/to/family.txt",
+  "svtyper": "/path/to/svtyper"
+}
